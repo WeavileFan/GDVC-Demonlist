@@ -1,17 +1,17 @@
-import { store } from "../main.js";
-import { embed } from "../util.js";
-import { score } from "../score.js";
-import { fetchEditors, fetchList } from "../content.js";
+import { store } from '../main.js';
+import { embed } from '../util.js';
+import { score } from '../score.js';
+import { fetchEditors, fetchList } from '../content.js';
 
-import Spinner from "../components/Spinner.js";
-import LevelAuthors from "../components/List/LevelAuthors.js";
+import Spinner from '../components/Spinner.js';
+import LevelAuthors from '../components/List/LevelAuthors.js';
 
 const roleIconMap = {
-    owner: "crown",
-    admin: "user-gear",
-    helper: "user-shield",
-    dev: "code",
-    trial: "user-lock",
+    owner: 'crown',
+    admin: 'user-gear',
+    helper: 'user-shield',
+    dev: 'code',
+    trial: 'user-lock',
 };
 
 export default {
@@ -22,7 +22,7 @@ export default {
         </main>
         <main v-else class="page-list">
             <div class="list-container">
-                <table class="list" v-if="list">
+                <table class="list" v-if="list.length > 0">
                     <tr v-for="([level, err], i) in list">
                         <td class="rank">
                             <p v-if="i + 1 <= 150" class="type-label-lg">#{{ i + 1 }}</p>
@@ -88,11 +88,11 @@ export default {
                     <div class="og">
                         <p class="type-label-md">Website layout made by <a href="https://tsl.pages.dev/" target="_blank">TheShittyList</a></p>
                     </div>
-                    <template v-if="editors">
+                    <template v-if="editors.length > 0">
                         <h3>List Editors</h3>
                         <ol class="editors">
                             <li v-for="editor in editors">
-                                <img :src="\`/assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
+                                <img :src="\`/assets/\${roleIconMap[editor.role]\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
                                 <a v-if="editor.link" class="type-label-lg link" target="_blank" :href="editor.link">{{ editor.name }}</a>
                                 <p v-else>{{ editor.name }}</p>
                             </li>
@@ -109,7 +109,7 @@ export default {
                         Have either source audio or clicks/taps in the video. Edited audio only does not count
                     </p>
                     <p>
-                        The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this
+                        The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exe[...]
                     </p>
                     <p>
                         The recording must also show the player hit the endwall, or the completion will be invalidated.
@@ -134,13 +134,16 @@ export default {
         selected: 0,
         errors: [],
         roleIconMap,
-        store
+        store,
     }),
     computed: {
         level() {
-            return this.list[this.selected][0];
+            return this.list?.[this.selected]?.[0] ?? null;
         },
         video() {
+            if (!this.level) {
+                return '';
+            }
             if (!this.level.showcase) {
                 return embed(this.level.verification);
             }
@@ -148,30 +151,26 @@ export default {
             return embed(
                 this.toggledShowcase
                     ? this.level.showcase
-                    : this.level.verification
+                    : this.level.verification,
             );
         },
     },
     async mounted() {
-        // Hide loading spinner
-        this.list = await fetchList();
-        this.editors = await fetchEditors();
+        const list = await fetchList();
+        const editors = await fetchEditors();
 
-        // Error handling
-        if (!this.list) {
-            this.errors = [
-                "Failed to load list. Retry in a few minutes or notify list staff.",
-            ];
+        this.list = Array.isArray(list) ? list : [];
+        this.editors = Array.isArray(editors) ? editors : [];
+
+        if (this.list.length === 0) {
+            this.errors = ['Failed to load list. Retry in a few minutes or notify list staff.'];
         } else {
-            this.errors.push(
-                ...this.list
-                    .filter(([_, err]) => err)
-                    .map(([_, err]) => {
-                        return `Failed to load level. (${err}.json)`;
-                    })
-            );
-            if (!this.editors) {
-                this.errors.push("Failed to load list editors.");
+            this.errors = this.list
+                .filter(([_, err]) => err)
+                .map(([_, err]) => `Failed to load level. (${err}.json)`);
+
+            if (this.editors.length === 0) {
+                this.errors.push('Failed to load list editors.');
             }
         }
 
